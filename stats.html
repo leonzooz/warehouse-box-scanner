@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>倉庫紙箱統計</title>
+  <style>
+    :root { --bg:#071019; --panel:#101a25; --panel2:#172536; --text:#edf6ff; --muted:#96a8bb; --line:#2a3a50; --accent:#22b8ff; --ok:#45d48d; --bad:#ff7070; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",Arial,sans-serif; }
+    .app { width:100%; max-width:760px; margin:0 auto; padding:14px; }
+    .topbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    h1 { margin:0; font-size:24px; }.back { min-height:40px; display:flex; align-items:center; padding:0 13px; border:1px solid var(--line); border-radius:8px; color:var(--text); background:var(--panel2); text-decoration:none; font-weight:700; }
+    .summary { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:14px; }.summary-card { padding:14px; border:1px solid var(--line); border-radius:8px; background:var(--panel); }.summary-label { color:var(--muted); font-size:14px; }.summary-value { margin-top:4px; color:var(--accent); font-size:30px; font-weight:800; }
+    .grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }.card { min-height:182px; padding:16px; border:1px solid var(--line); border-radius:8px; background:var(--panel); }.model { color:var(--accent); font-size:28px; font-weight:800; }.metric { margin-top:14px; color:var(--muted); font-size:14px; }.number { margin-top:2px; font-size:26px; font-weight:800; }.latest { margin-top:16px; color:var(--muted); font-size:13px; line-height:1.45; }.latest strong { display:block; margin-top:3px; color:var(--text); font-weight:600; word-break:break-word; }
+    .status { margin:0 0 14px; padding:12px 14px; border:1px solid var(--line); border-radius:8px; background:var(--panel); color:var(--muted); }.status.bad { border-color:rgba(255,112,112,.65); color:var(--bad); }.hidden { display:none; }
+    @media (max-width:420px) { .app { padding:10px; }.grid { grid-template-columns:1fr; }.summary { grid-template-columns:1fr 1fr; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="topbar"><h1>倉庫紙箱統計</h1><a class="back" href="./">拍面籤</a></div>
+    <div id="status" class="status">正在讀取紙箱統計...</div>
+    <section class="summary"><article class="summary-card"><div class="summary-label">今日使用總數</div><div id="today-total" class="summary-value">-</div></article><article class="summary-card"><div class="summary-label">累計使用總數</div><div id="all-total" class="summary-value">-</div></article></section>
+    <section id="grid" class="grid"></section>
+  </main>
+  <script>
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzWWBupdwuar1EvO0qsXAehBawmt_TQk7faI9mYaNdBT6bWwFxqiEOJD5xwWWLVikWy/exec";
+    const grid = document.getElementById("grid");
+    const status = document.getElementById("status");
+    const todayTotal = document.getElementById("today-total");
+    const allTotal = document.getElementById("all-total");
+
+    function formatTime(value) {
+      if (!value) return "尚無上傳紀錄";
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString("zh-TW", { hour12:false });
+    }
+
+    function render(items) {
+      const today = items.reduce((sum, item) => sum + Number(item.todayUsed || 0), 0);
+      const all = items.reduce((sum, item) => sum + Number(item.totalUsed || 0), 0);
+      todayTotal.textContent = today;
+      allTotal.textContent = all;
+      grid.replaceChildren();
+      items.forEach(function(item) {
+        const card = document.createElement("article");
+        card.className = "card";
+        card.innerHTML = "<div class=\"model\"></div><div class=\"metric\">今日使用</div><div class=\"number today\"></div><div class=\"metric\">累計使用</div><div class=\"number total\"></div><div class=\"latest\">最後上傳<strong></strong></div>";
+        card.querySelector(".model").textContent = item.model || "-";
+        card.querySelector(".today").textContent = Number(item.todayUsed || 0);
+        card.querySelector(".total").textContent = Number(item.totalUsed || 0);
+        card.querySelector("strong").textContent = formatTime(item.latestUpload);
+        grid.append(card);
+      });
+      status.classList.add("hidden");
+    }
+
+    async function loadStats() {
+      try {
+        const response = await fetch(APPS_SCRIPT_URL + "?action=packingStats&_=" + Date.now());
+        const result = JSON.parse(await response.text());
+        if (!response.ok || result.status !== "success") throw new Error(result.message || "讀取失敗");
+        render(result.items || []);
+      } catch (error) {
+        console.error(error);
+        status.textContent = "統計讀取失敗：" + error.message;
+        status.classList.add("bad");
+      }
+    }
+
+    loadStats();
+  </script>
+</body>
+</html>

@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>倉庫紙箱拍照</title>
+  <style>
+    :root { --bg:#071019; --panel:#101a25; --panel2:#172536; --text:#edf6ff; --muted:#96a8bb; --line:#2a3a50; --accent:#22b8ff; --ok:#45d48d; --warn:#ffcc66; --bad:#ff7070; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",Arial,sans-serif; }
+    .app { width:100%; max-width:540px; margin:0 auto; padding:10px; }
+    .topbar { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
+    h1 { margin:0; font-size:22px; line-height:1.2; }
+    .top-actions { display:flex; align-items:center; gap:8px; }
+    .pill { border:1px solid var(--line); border-radius:999px; padding:6px 10px; color:var(--muted); font-size:12px; white-space:nowrap; }
+    .operator { max-width:94px; min-height:32px; padding:5px 9px; overflow:hidden; border:1px solid var(--line); border-radius:999px; background:var(--panel2); color:var(--text); font-size:13px; font-weight:700; text-overflow:ellipsis; white-space:nowrap; }
+    .restart { width:42px; min-width:42px; height:42px; min-height:42px; padding:0; border:1px solid var(--line); border-radius:50%; background:var(--panel2); color:var(--text); font-size:28px; line-height:1; }
+    .stats-link { min-height:32px; display:flex; align-items:center; padding:5px 9px; border:1px solid var(--line); border-radius:999px; color:var(--text); background:var(--panel2); text-decoration:none; font-size:13px; font-weight:700; white-space:nowrap; }
+    .camera-card { position:relative; overflow:hidden; min-height:72vh; border:1px solid var(--line); border-radius:8px; background:#02060a; }
+    #camera { width:100%; height:72vh; display:block; object-fit:cover; background:#02060a; }
+    .guide { position:absolute; z-index:3; left:16px; right:16px; bottom:20px; padding:14px; border:1px solid var(--line); border-radius:8px; background:rgba(16,26,37,.94); color:var(--text); font-size:16px; line-height:1.45; pointer-events:none; }
+    .review-preview { position:absolute; z-index:4; inset:0; width:100%; height:100%; object-fit:contain; background:#02060a; }
+    .camera-action,.review-actions { position:absolute; z-index:7; left:12px; right:12px; bottom:12px; }
+    .review-actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .box-picker { position:absolute; z-index:6; top:16px; right:12px; display:grid; width:92px; gap:6px; }
+    .box-choice { min-height:44px; padding:0 6px; border:1px solid var(--line); border-radius:8px; background:rgba(16,26,37,.94); color:var(--text); font-size:16px; font-weight:800; }
+    .box-choice.active { border-color:var(--accent); background:var(--accent); color:#062033; }
+    button { min-height:56px; border:1px solid transparent; border-radius:8px; background:var(--accent); color:#062033; font:700 20px/1 inherit; cursor:pointer; }
+    button.secondary { background:var(--panel2); border-color:var(--line); color:var(--text); }
+    button:disabled { opacity:.45; cursor:not-allowed; }
+    .message { margin:16px 0 10px; min-height:56px; display:flex; align-items:center; padding:12px 16px; border:1px solid var(--line); border-radius:8px; background:var(--panel); color:var(--muted); font-size:17px; line-height:1.4; }
+    .message.ok { border-color:rgba(69,212,141,.65); color:var(--ok); }.message.warn { border-color:rgba(255,204,102,.65); color:var(--warn); }.message.bad { border-color:rgba(255,112,112,.65); color:var(--bad); }
+    .selected-box { padding:14px 16px; border:1px solid var(--line); border-radius:8px; background:var(--panel); }.selected-box .label { color:var(--muted); font-size:14px; }.selected-box .value { margin-top:4px; color:var(--accent); font-size:28px; font-weight:800; }
+    .operator-dialog { position:fixed; z-index:20; inset:0; display:flex; align-items:center; justify-content:center; padding:20px; background:rgba(0,0,0,.68); }
+    .operator-card { width:min(100%,360px); padding:20px; border:1px solid var(--line); border-radius:8px; background:var(--panel); }
+    .operator-card h2 { margin:0 0 8px; font-size:21px; }.operator-card p { margin:0 0 16px; color:var(--muted); line-height:1.5; }
+    .operator-card input { width:100%; min-height:50px; margin-bottom:12px; padding:0 12px; border:1px solid var(--line); border-radius:8px; background:#071019; color:var(--text); font:inherit; font-size:18px; }
+    .hidden { display:none !important; } #work-canvas { display:none; }
+    @media (max-width:390px) { .app { padding:8px; } #camera,.camera-card { min-height:70vh; height:70vh; } .box-picker { width:82px; } .box-choice { min-height:42px; font-size:15px; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="topbar">
+      <h1>倉庫紙箱拍照</h1>
+      <div class="top-actions"><a class="stats-link" href="stats.html">紙箱統計</a><button id="operator-btn" class="operator" type="button" title="切換作業員">設定人員</button><button id="restart-btn" class="restart" type="button" title="刷新相機" aria-label="刷新相機">↻</button></div>
+    </div>
+    <section class="camera-card">
+      <video id="camera" playsinline muted autoplay></video>
+      <div id="guide" class="guide">請把寄件面籤完整放進畫面，再按下方按鈕拍照。</div>
+      <img id="preview" class="review-preview hidden" alt="面籤照片預覽" />
+      <div id="box-picker" class="box-picker hidden" aria-label="選擇紙箱型號">
+        <button class="box-choice" data-box="S60" type="button">S60</button>
+        <button class="box-choice" data-box="S77" type="button">S77</button>
+        <button class="box-choice" data-box="S105" type="button">S105</button>
+        <button class="box-choice" data-box="S120" type="button">S120</button>
+        <button class="box-choice" data-box="S150" type="button">S150</button>
+      </div>
+      <div id="camera-action" class="camera-action"><button id="capture-btn" type="button">拍面籤照</button></div>
+      <div id="review-actions" class="review-actions hidden"><button id="retake-btn" class="secondary" type="button">重拍</button><button id="upload-btn" type="button" disabled>選紙箱後上傳</button></div>
+    </section>
+    <div id="message" class="message">正在啟動相機...</div>
+    <section id="selected-box" class="selected-box hidden"><div class="label">已選紙箱型號</div><div id="selected-box-value" class="value">-</div></section>
+  </main>
+  <div id="operator-dialog" class="operator-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="operator-title">
+    <section class="operator-card"><h2 id="operator-title">設定作業員</h2><p>輸入姓名或代號。此裝置會記住目前人員，可隨時從頂部切換。</p><input id="operator-input" type="text" maxlength="30" autocomplete="name" placeholder="例如：小王、A01" /><button id="save-operator-btn" type="button" style="width:100%">開始拍照</button></section>
+  </div>
+  <canvas id="work-canvas"></canvas>
+  <script>
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzWWBupdwuar1EvO0qsXAehBawmt_TQk7faI9mYaNdBT6bWwFxqiEOJD5xwWWLVikWy/exec";
+    const camera = document.getElementById("camera");
+    const preview = document.getElementById("preview");
+    const guide = document.getElementById("guide");
+    const message = document.getElementById("message");
+    const restartBtn = document.getElementById("restart-btn");
+    const operatorBtn = document.getElementById("operator-btn");
+    const operatorDialog = document.getElementById("operator-dialog");
+    const operatorInput = document.getElementById("operator-input");
+    const saveOperatorBtn = document.getElementById("save-operator-btn");
+    const captureBtn = document.getElementById("capture-btn");
+    const retakeBtn = document.getElementById("retake-btn");
+    const uploadBtn = document.getElementById("upload-btn");
+    const cameraAction = document.getElementById("camera-action");
+    const reviewActions = document.getElementById("review-actions");
+    const boxPicker = document.getElementById("box-picker");
+    const boxChoices = Array.from(document.querySelectorAll(".box-choice"));
+    const selectedBoxPanel = document.getElementById("selected-box");
+    const selectedBoxValue = document.getElementById("selected-box-value");
+    const canvas = document.getElementById("work-canvas");
+    const ctx = canvas.getContext("2d", { willReadFrequently:true });
+
+    let stream = null;
+    let photoData = "";
+    let photoName = "";
+    let boxModel = "";
+    let isUploading = false;
+    let operatorName = localStorage.getItem("packingOperatorName") || "";
+
+    restartBtn.addEventListener("click", restartCamera);
+    operatorBtn.addEventListener("click", showOperatorDialog);
+    saveOperatorBtn.addEventListener("click", saveOperator);
+    operatorInput.addEventListener("keydown", function(event) { if (event.key === "Enter") saveOperator(); });
+    captureBtn.addEventListener("click", captureFaceLabel);
+    retakeBtn.addEventListener("click", retakePhoto);
+    uploadBtn.addEventListener("click", submitPacking);
+    boxChoices.forEach(function(button) { button.addEventListener("click", function() { selectBox(button.dataset.box); }); });
+    window.addEventListener("load", function() { updateOperatorButton(); if (!operatorName) showOperatorDialog(); startCamera(); });
+    window.addEventListener("pagehide", stopCamera);
+    document.addEventListener("visibilitychange", function() { if (document.hidden) stopCamera(); });
+
+    function showMessage(text, type) { message.textContent = text; message.className = "message" + (type ? " " + type : ""); }
+
+    function updateOperatorButton() { operatorBtn.textContent = operatorName || "設定人員"; }
+
+    function showOperatorDialog() {
+      operatorInput.value = operatorName;
+      operatorDialog.classList.remove("hidden");
+      window.setTimeout(function() { operatorInput.focus(); }, 50);
+    }
+
+    function saveOperator() {
+      const value = operatorInput.value.trim();
+      if (!value) { operatorInput.focus(); return; }
+      operatorName = value;
+      localStorage.setItem("packingOperatorName", operatorName);
+      updateOperatorButton();
+      operatorDialog.classList.add("hidden");
+      showMessage("目前作業員：" + operatorName, "ok");
+    }
+
+    async function restartCamera() {
+      if (isUploading) return;
+      preview.classList.add("hidden");
+      boxPicker.classList.add("hidden");
+      reviewActions.classList.add("hidden");
+      cameraAction.classList.remove("hidden");
+      guide.classList.remove("hidden");
+      await startCamera();
+    }
+
+    async function startCamera() {
+      if (isUploading) return;
+      stopStream();
+      showMessage("正在啟動相機...");
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode:{ ideal:"environment" }, width:{ ideal:1280 }, height:{ ideal:720 } },
+          audio: false
+        });
+        camera.srcObject = stream;
+        await camera.play();
+        showMessage("請把寄件面籤完整放進畫面後拍照。");
+      } catch (error) {
+        console.error(error);
+        showMessage("相機畫面沒有出現時，請按右上角刷新相機，並確認已允許相機權限。", "bad");
+      }
+    }
+
+    function stopCamera() { stopStream(); }
+    function stopStream() {
+      if (stream) { stream.getTracks().forEach(function(track) { track.stop(); }); stream = null; }
+      camera.srcObject = null;
+    }
+
+    function captureFaceLabel() {
+      if (isUploading) return;
+      if (!operatorName) { showOperatorDialog(); showMessage("請先設定作業員。", "warn"); return; }
+      if (!camera.videoWidth || !camera.videoHeight) { showMessage("相機尚未準備好，請按右上角刷新相機。", "warn"); return; }
+      let width = camera.videoWidth;
+      let height = camera.videoHeight;
+      const maxSide = 1280;
+      if (width >= height && width > maxSide) { height = Math.round(height * maxSide / width); width = maxSide; }
+      if (height > width && height > maxSide) { width = Math.round(width * maxSide / height); height = maxSide; }
+      canvas.width = width;
+      canvas.height = height;
+      ctx.drawImage(camera, 0, 0, width, height);
+      photoData = canvas.toDataURL("image/jpeg", 0.76);
+      photoName = "packing-face-label-" + Date.now() + ".jpg";
+      preview.src = photoData;
+      preview.classList.remove("hidden");
+      guide.classList.add("hidden");
+      cameraAction.classList.add("hidden");
+      boxPicker.classList.remove("hidden");
+      reviewActions.classList.remove("hidden");
+      stopStream();
+      showMessage("請在照片右側選擇紙箱型號，再按確定上傳。", "ok");
+    }
+
+    function selectBox(value) {
+      boxModel = value;
+      boxChoices.forEach(function(button) { button.classList.toggle("active", button.dataset.box === value); });
+      selectedBoxValue.textContent = value;
+      selectedBoxPanel.classList.remove("hidden");
+      uploadBtn.disabled = false;
+      uploadBtn.textContent = "確定上傳";
+    }
+
+    async function retakePhoto() {
+      if (isUploading) return;
+      photoData = "";
+      photoName = "";
+      boxModel = "";
+      preview.src = "";
+      preview.classList.add("hidden");
+      boxPicker.classList.add("hidden");
+      reviewActions.classList.add("hidden");
+      selectedBoxPanel.classList.add("hidden");
+      boxChoices.forEach(function(button) { button.classList.remove("active"); });
+      uploadBtn.disabled = true;
+      uploadBtn.textContent = "選紙箱後上傳";
+      await restartCamera();
+    }
+
+    async function submitPacking() {
+      if (!boxModel || !photoData || isUploading) return;
+      isUploading = true;
+      restartBtn.disabled = true;
+      retakeBtn.disabled = true;
+      uploadBtn.disabled = true;
+      showMessage("正在上傳面籤...");
+      const now = new Date();
+      const params = new URLSearchParams();
+      params.append("mode", "packing");
+      params.append("boxModel", boxModel);
+      params.append("operatorName", operatorName);
+      params.append("photoName", photoName);
+      params.append("photoData", photoData);
+      params.append("scanTime", now.toLocaleString("zh-TW", { hour12:false }));
+      try {
+        const response = await fetch(APPS_SCRIPT_URL, { method:"POST", body:params });
+        const text = await response.text();
+        if (!response.ok || /error|fail|失敗/i.test(text)) throw new Error(text);
+        showMessage(boxModel + " 面籤已上傳，準備拍下一箱。", "ok");
+        window.setTimeout(resetForNext, 900);
+      } catch (error) {
+        console.error(error);
+        isUploading = false;
+        restartBtn.disabled = false;
+        retakeBtn.disabled = false;
+        uploadBtn.disabled = false;
+        showMessage("上傳失敗：" + error.message, "bad");
+      }
+    }
+
+    async function resetForNext() {
+      isUploading = false;
+      restartBtn.disabled = false;
+      retakeBtn.disabled = false;
+      photoData = "";
+      photoName = "";
+      boxModel = "";
+      preview.src = "";
+      preview.classList.add("hidden");
+      boxPicker.classList.add("hidden");
+      reviewActions.classList.add("hidden");
+      selectedBoxPanel.classList.add("hidden");
+      boxChoices.forEach(function(button) { button.classList.remove("active"); });
+      uploadBtn.disabled = true;
+      uploadBtn.textContent = "選紙箱後上傳";
+      await restartCamera();
+    }
+  </script>
+</body>
+</html>
