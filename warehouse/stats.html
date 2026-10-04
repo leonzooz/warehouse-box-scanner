@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="robots" content="noindex, nofollow" />
   <title>倉庫紙箱統計</title>
   <style>
     :root { --bg:#071019; --panel:#101a25; --panel2:#172536; --text:#edf6ff; --muted:#96a8bb; --line:#2a3a50; --accent:#22b8ff; --ok:#45d48d; --bad:#ff7070; }
@@ -19,13 +20,19 @@
 </head>
 <body>
   <main class="app">
-    <div class="topbar"><h1>倉庫紙箱統計</h1><a class="back" href="./">拍面籤</a></div>
+    <div class="topbar"><h1 id="app-title">倉庫紙箱統計</h1><a id="back-link" class="back" href="./">拍面籤</a></div>
     <div id="status" class="status">正在讀取紙箱統計...</div>
     <section class="summary"><article class="summary-card"><div class="summary-label">今日使用總數</div><div id="today-total" class="summary-value">-</div></article><article class="summary-card"><div class="summary-label">累計使用總數</div><div id="all-total" class="summary-value">-</div></article></section>
     <section id="grid" class="grid"></section>
   </main>
+  <script src="../tenants.js"></script>
   <script>
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzWWBupdwuar1EvO0qsXAehBawmt_TQk7faI9mYaNdBT6bWwFxqiEOJD5xwWWLVikWy/exec";
+    const TENANT = window.resolveLoginAiTenant();
+    const APPS_SCRIPT_URL = TENANT.appsScriptUrl;
+    document.title = TENANT.companyName + "｜倉庫紙箱統計";
+    document.getElementById("app-title").textContent = TENANT.companyName + "｜倉庫紙箱統計";
+    document.getElementById("back-link").href = "./?tenant=" + encodeURIComponent(TENANT.id);
+    document.documentElement.style.setProperty("--accent", TENANT.primaryColor || "#22b8ff");
     const grid = document.getElementById("grid");
     const status = document.getElementById("status");
     const todayTotal = document.getElementById("today-total");
@@ -58,7 +65,7 @@
 
     async function loadStats() {
       try {
-        const response = await fetch(APPS_SCRIPT_URL + "?action=packingStats&_=" + Date.now());
+        const response = await fetch(APPS_SCRIPT_URL + "?action=packingStats&tenantId=" + encodeURIComponent(TENANT.id) + "&_=" + Date.now());
         const result = JSON.parse(await response.text());
         if (!response.ok || result.status !== "success") throw new Error(result.message || "讀取失敗");
         render(result.items || []);
