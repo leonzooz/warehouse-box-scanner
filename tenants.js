@@ -4,7 +4,7 @@ window.LOGINAI_TENANTS = {
     id: "anling",
     companyName: "Anling",
     appName: "倉庫紙箱拍照",
-    appsScriptUrl: "https://script.google.com/macros/s/AKfycbzWWBupdwuar1EvO0qsXAehBawmt_TQk7faI9mYaNdBT6bWwFxqiEOJD5xwWWLVikWy/exec",
+    appsScriptUrl: "https://script.google.com/macros/s/AKfycbzEbxUhdMFg6cpiL58oN71q46_41T_rne2Sh1OjPTbQV1gJzzi2bb_4tN0HSq_14j0NCA/exec",
     primaryColor: "#22b8ff",
     enabledModules: ["warehouse"]
   }
