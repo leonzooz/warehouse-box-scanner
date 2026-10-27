@@ -25,19 +25,20 @@
     <header class="topbar"><div class="brand"><div class="brand-mark">A</div><div><h1 id="company-name">Anling</h1><p>工作台</p></div></div><div id="tenant-id" class="tenant">anling</div></header>
     <section><h2 class="section-title">作業模組</h2><div class="module-grid">
       <a class="module active" href="warehouse/"><div class="module-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5z"/><path d="m3 7.5 9 4.5 9-4.5M12 12v9"/></svg></div><h2>倉庫紙箱</h2><p>拍攝面籤並記錄紙箱型號。</p><div class="state">已啟用</div></a>
-      <div class="module locked" aria-label="淘寶入庫尚未啟用"><div class="module-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v6h6M21 21v-6h-6"/><path d="M21 9A9 9 0 0 0 6 5.3L3 9m0 6a9 9 0 0 0 15 3.7L21 15"/></svg></div><h2>淘寶入庫</h2><p>掃描商品標籤與入庫資料。</p><div class="state">準備中</div></div>
+      <a id="taobao-module" class="module active" href="taobao/"><div class="module-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v6h6M21 21v-6h-6"/><path d="M21 9A9 9 0 0 0 6 5.3L3 9m0 6a9 9 0 0 0 15 3.7L21 15"/></svg></div><h2>淘寶入庫</h2><p>掃描商品標籤與入庫資料。</p><div class="state">已啟用</div></a>
       <div class="module locked" aria-label="回款作業台尚未啟用"><div class="module-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15 9.5c-.4-1-1.5-1.5-3-1.5-1.7 0-3 1-3 2.3 0 3.2 6 1.3 6 4.5 0 1.3-1.3 2.2-3 2.2-1.5 0-2.7-.6-3.2-1.7M12 6v12"/></svg></div><h2>回款作業台</h2><p>應收款、對帳與回款紀錄。</p><div class="state">準備中</div></div>
       <div class="module locked" aria-label="管理後台尚未啟用"><div class="module-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21v-7m5 7V3m5 18v-9m5 9V8"/></svg></div><h2>管理後台</h2><p>人員、權限與營運資料。</p><div class="state">準備中</div></div>
     </div></section>
-    <section class="activity"><h2 class="section-title">系統狀態</h2><div class="activity-row"><span class="activity-dot"></span><span>倉庫紙箱模組可使用</span></div></section>
+    <section class="activity"><h2 class="section-title">系統狀態</h2><div class="activity-row"><span class="activity-dot"></span><span>倉庫紙箱與淘寶入庫模組可使用</span></div></section>
   </main>
-  <script src="tenants.js?v=20261006-1"></script>
+  <script src="tenants.js?v=20261006-3"></script>
   <script>
     var tenant = window.resolveLoginAiTenant();
     document.title = tenant.companyName + " 工作台";
     document.getElementById("company-name").textContent = tenant.companyName;
     document.getElementById("tenant-id").textContent = tenant.id;
     document.documentElement.style.setProperty("--accent", tenant.primaryColor || "#22b8ff");
+    document.getElementById("taobao-module").href = "taobao/?tenant=" + encodeURIComponent(tenant.id);
   </script>
 </body>
 </html>
